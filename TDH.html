@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <title>Quiz Điều Khiển - Tự Động Hóa - 100 câu</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background: #400848; /* tím pastel */
+            color: #222;
+        }
+        #quiz-container {
+            max-width: 800px;
+            margin: auto;
+            background: #b753c6;
+            padding: 25px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+            outline: none;
+        }
+        #question {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 25px;
+            color: #fff;
+            line-height: 1.5;
+        }
+        .answer-option {
+            color: #000000 !important;
+            padding: 15px 20px;
+            margin-bottom: 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+            font-size: 1em;
+            font-weight: 500;
+            border: 2px solid transparent;
+            transition: background-color 0.3s, border-color 0.3s;
+            display: flex;
+            align-items: center;
+            line-height: 1.4;
+        }
+        .answer-option:hover {
+            filter: brightness(0.95);
+        }
+        .answer-option:focus {
+            outline: none;
+            border-color: #ffcc00;
+            box-shadow: 0 0 8px #ffcc00;
+        }
+        .answer-A { background-color: #D0E8FF; }
+        .answer-B { background-color: #D4EDDA; }
+        .answer-C { background-color: #FFE5B4; }
+        .answer-D { background-color: #F8D7DA; }
+        .correct {
+            background-color: #4CAF50 !important;
+            color: white !important;
+            border-color: #388e3c !important;
+        }
+        .wrong {
+            background-color: #f44336 !important;
+            color: white !important;
+            border-color: #d32f2f !important;
+        }
+        #progress {
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: #fff;
+            font-style: italic;
+        }
+        #result {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #90ee90;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .answer-label {
+            font-weight: 700;
+            margin-right: 12px;
+            min-width: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="quiz-container" tabindex="0" aria-live="polite" aria-atomic="true" role="region">
+    <div id="question"></div>
+    <div id="answers"></div>
+    <div id="progress"></div>
+    <div id="result" aria-live="assertive"></div>
+</div>
+
+<script>
+    // Hàm xáo trộn mảng (Fisher-Yates Shuffle)
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    let quizData = [
+        { question: 'Khi đo điện áp một chiều bằng vôn kế, thiết bị đo phải được mắc như thế nào với phần tử cần đo?', answers: ['Mắc nối tiếp với tải', 'Mắc song song với phần tử cần đo', 'Mắc nối tiếp với nguồn', 'Mắc chéo qua cầu chì'], correct: 'Mắc song song với phần tử cần đo' },
+        { question: 'Khi đo dòng điện một chiều bằng ampe kế, cách mắc đúng là gì?', answers: ['Mắc nối tiếp với tải', 'Mắc song song với tải', 'Mắc song song với nguồn', 'Mắc nối tiếp với vôn kế'], correct: 'Mắc nối tiếp với tải' },
+        { question: 'Theo tài liệu thực hành, trước khi xác nhận lối ra nguồn 3 pha đã có điện áp, nên đặt VOM ở thang đo nào?', answers: ['Thang đo thông mạch', 'Thang đo 10VDC', 'Thang đo 1000VAC', 'Thang đo điện trở'], correct: 'Thang đo 1000VAC' },
+        { question: 'Máy biến dòng trong mô hình thực hành có chức năng chính là gì?', answers: ['Tăng điện áp AC lên mức cao hơn', 'Biến đổi dòng lớn về mức nhỏ để thiết bị đo làm việc an toàn', 'Ổn định điện áp DC đầu ra', 'Đổi dòng DC thành AC'], correct: 'Biến đổi dòng lớn về mức nhỏ để thiết bị đo làm việc an toàn' },
+        { question: 'Cos φ của mạch AC được hiểu đúng nhất là tỷ số giữa đại lượng nào?', answers: ['Công suất biểu kiến và công suất phản kháng', 'Công suất tác dụng và công suất biểu kiến', 'Điện áp và dòng điện', 'Điện áp và điện trở'], correct: 'Công suất tác dụng và công suất biểu kiến' },
+        { question: 'Tần số mét được dùng để đo đại lượng nào?', answers: ['Điện trở cách điện', 'Tần số của nguồn AC', 'Hệ số khuếch đại', 'Tốc độ quay động cơ DC'], correct: 'Tần số của nguồn AC' },
+        { question: 'Khi tải thay đổi từ thuần trở sang tải cảm, hệ số công suất của mạch thường thay đổi theo xu hướng nào?', answers: ['Tăng lên gần 1', 'Giảm xuống', 'Không đổi tuyệt đối', 'Đổi dấu sang âm'], correct: 'Giảm xuống' },
+        { question: 'Một ưu điểm nổi bật của đồng hồ vạn năng số so với đồng hồ kim là gì?', answers: ['Không cần nguồn nuôi', 'Điện trở vào lớn, ít ảnh hưởng mạch đo', 'Không cần chọn thang đo', 'Chỉ đo được AC'], correct: 'Điện trở vào lớn, ít ảnh hưởng mạch đo' },
+        { question: 'Với đồng hồ chỉ thị kim, việc cấp ngược cực tính trong thời gian dài có thể gây hiện tượng nào?', answers: ['Kim quay thuận nhanh hơn', 'Kim quay ngược và có thể hỏng đồng hồ', 'Không ảnh hưởng gì', 'Đồng hồ tự đổi thang đo'], correct: 'Kim quay ngược và có thể hỏng đồng hồ' },
+        { question: 'Muốn đo thông mạch bằng VOM an toàn, điều kiện quan trọng nhất trước khi đo là gì?', answers: ['Phải cấp điện áp định mức cho mạch', 'Mạch phải đang mang tải', 'Phải cắt nguồn khỏi đối tượng đo', 'Phải mắc thêm điện trở phụ song song'], correct: 'Phải cắt nguồn khỏi đối tượng đo' },
+        { question: 'Module nguồn xoay chiều thay đổi trong bộ thực hành dùng phần tử nào để thay đổi điện áp ngõ ra liên tục?', answers: ['Máy phát tốc', 'Biến áp tự ngẫu', 'Cầu diode', 'Encoder quang'], correct: 'Biến áp tự ngẫu' },
+        { question: 'Module Vôn kế DC trong tài liệu được thiết kế để đo loại đại lượng nào?', answers: ['Điện áp xoay chiều 3 pha', 'Dòng điện một chiều', 'Điện áp một chiều', 'Tần số nguồn'], correct: 'Điện áp một chiều' },
+        { question: 'Module Ampe kế AC trong tài liệu có các thang đo nào?', answers: ['0,5A và 5A', '1A và 2A', '2A và 5A', '5A và 10A'], correct: '0,5A và 5A' },
+        { question: 'Công suất tác dụng của tải ba pha đối xứng được xác định gần đúng theo biểu thức nào?', answers: ['P = U.I', 'P = 3.U.I', 'P = √3.U.I.cosφ', 'P = U/I.cosφ'], correct: 'P = √3.U.I.cosφ' },
+        { question: 'Đồng hồ đo công suất 1 pha được dùng chủ yếu để xác định đại lượng nào?', answers: ['Công suất phản kháng', 'Công suất tác dụng', 'Điện áp dây', 'Điện kháng tải'], correct: 'Công suất tác dụng' },
+        { question: 'Khi đo các đại lượng trên mạch AC, nguyên nhân nào sau đây làm sai lệch kết quả do pha giữa điện áp và dòng điện?', answers: ['Dùng dây màu đỏ', 'Dùng nguồn DC', 'Bỏ qua tính chất tải cảm hoặc tải dung', 'Dùng thang đo cao hơn dự kiến'], correct: 'Bỏ qua tính chất tải cảm hoặc tải dung' },
+        { question: 'Trong mạch AC thuần trở, quan hệ pha giữa điện áp và dòng điện là gì?', answers: ['Dòng điện sớm pha 90°', 'Dòng điện trễ pha 90°', 'Cùng pha', 'Ngược pha 180°'], correct: 'Cùng pha' },
+        { question: 'Trong mạch chỉ chứa cuộn cảm thuần, dòng điện có quan hệ pha như thế nào so với điện áp?', answers: ['Cùng pha với điện áp', 'Sớm pha 90°', 'Trễ pha 90°', 'Ngược pha 180°'], correct: 'Trễ pha 90°' },
+        { question: 'Trong mạch chỉ chứa tụ điện lý tưởng, dòng điện có quan hệ pha như thế nào so với điện áp?', answers: ['Trễ pha 90°', 'Cùng pha', 'Sớm pha 90°', 'Ngược pha 180°'], correct: 'Sớm pha 90°' },
+        { question: 'Khi hệ số công suất giảm nhưng công suất tác dụng yêu cầu không đổi, dòng điện đường dây thường sẽ như thế nào?', answers: ['Giảm mạnh', 'Tăng lên', 'Bằng 0', 'Không phụ thuộc cosφ'], correct: 'Tăng lên' },
+        { question: 'Trong thực hành đo công suất và cosφ, loại tải nào thường làm cosφ giảm rõ rệt nhất?', answers: ['Tải thuần trở', 'Tải cảm', 'Tải LED báo nguồn', 'Tải đo tần số'], correct: 'Tải cảm' },
+        { question: 'Biện pháp nào thường dùng để cải thiện cosφ cho tải cảm?', answers: ['Mắc thêm tụ bù thích hợp', 'Giảm số vòng dây cuộn cảm về 0', 'Thay đồng hồ đo bằng đồng hồ số', 'Mắc thêm cầu chì lớn hơn'], correct: 'Mắc thêm tụ bù thích hợp' },
+        { question: 'Nguồn xoay chiều trong các mô hình thực hành của tài liệu chủ yếu có tần số định mức là bao nhiêu?', answers: ['25Hz', '50Hz', '75Hz', '400Hz'], correct: '50Hz' },
+        { question: 'Nút nhấn khẩn EMG(emergency) trong mô hình có vai trò chính là gì?', answers: ['Tăng tốc động cơ', 'Ngắt mạch nhanh khi có sự cố', 'Đảo chiều quay', 'Tăng điện áp đầu ra'], correct: 'Ngắt mạch nhanh khi có sự cố' },
+        { question: 'Theo hướng dẫn thao tác an toàn, trước khi đóng điện cho nguồn 3 pha cần đặt CB(cầu dao), nút nhấn khẩn và switch ở trạng thái nào?', answers: ['CB lên, EMG nhả, switch ON', 'CB xuống, EMG đang ấn, switch OFF', 'CB lên, EMG ấn, switch OFF', 'CB xuống, EMG nhả, switch ON'], correct: 'CB xuống, EMG đang ấn, switch OFF' },
+        { question: 'Nguồn điện một chiều thay đổi trong tài liệu cho phép điều chỉnh liên tục trong dải nào?', answers: ['0 đến 5VDC', '0 đến 12VDC', '0 đến 24VDC', '0 đến 30VDC'], correct: '0 đến 30VDC' },
+        { question: 'Vì sao không nên để hở mạch thứ cấp của máy biến dòng khi phía sơ cấp đang có dòng?', answers: ['Vì ampe kế sẽ chỉ về 0', 'Vì có thể sinh điện áp cao nguy hiểm ở thứ cấp', 'Vì tần số nguồn giảm đột ngột', 'Vì tải sơ cấp sẽ tự ngắt'], correct: 'Vì có thể sinh điện áp cao nguy hiểm ở thứ cấp' },
+        { question: 'Module Vôn kế AC trong tài liệu được thiết kế với các thang đo nào?', answers: ['30VAC và 220VAC', '50VAC và 300VAC', '100VAC và 500VAC', '220VAC và 380VAC'], correct: '100VAC và 500VAC' },
+        { question: 'Module Ampe kế DC trong tài liệu phù hợp với các thang đo nào?', answers: ['1A và 2A', '2A và 5A', '5A và 10A', '10A và 20A'], correct: '2A và 5A' },
+        { question: 'Máy biến dòng trong mô hình thường được dùng với loại mạch nào?', answers: ['Mạch dòng DC thuần', 'Mạch AC có dòng lớn', 'Mạch logic 5V', 'Mạch op-amp tích phân'], correct: 'Mạch AC có dòng lớn' },
+        { question: 'Khi cần xác định công suất tiêu thụ của tải ba pha trong bộ thực hành, lựa chọn phù hợp nhất là gì?', answers: ['Dùng riêng tần số mét', 'Dùng đồng hồ đo công suất 3 pha', 'Dùng Vôn kế DC', 'Dùng máy hiện sóng thay cho mọi thiết bị khác'], correct: 'Dùng đồng hồ đo công suất 3 pha' },
+        { question: 'Cos φ mét dùng để đo đại lượng nào?', answers: ['Hiệu suất động cơ', 'Hệ số công suất của mạch AC', 'Tốc độ góc của động cơ', 'Tần số đóng cắt của thyristor'], correct: 'Hệ số công suất của mạch AC' },
+        { question: 'Nếu tăng thành phần tải cảm trong khi điện áp nguồn giữ nguyên, dòng điện của mạch AC thường có xu hướng nào?', answers: ['Lệch pha trễ nhiều hơn so với điện áp', 'Cùng pha tuyệt đối với điện áp', 'Đổi thành dòng DC', 'Bằng 0 do cảm kháng'], correct: 'Lệch pha trễ nhiều hơn so với điện áp' },
+        { question: 'Hệ số công suất thấp gây ra hậu quả kỹ thuật nào đáng chú ý nhất?', answers: ['Giảm số cực của động cơ', 'Tăng tổn thất trên đường dây do dòng điện lớn hơn', 'Làm tần số nguồn tăng lên', 'Làm đồng hồ đo điện áp thành đo dòng điện'], correct: 'Tăng tổn thất trên đường dây do dòng điện lớn hơn' },
+        { question: 'Khi chưa biết chính xác điện áp lối ra của nguồn AC, nên chọn thang đo VOM như thế nào trước?', answers: ['Nhỏ hơn giá trị dự kiến', 'Bằng đúng giá trị danh định', 'Lớn hơn giá trị dự kiến rồi giảm dần', 'Tùy ý vì kết quả không đổi'], correct: 'Lớn hơn giá trị dự kiến rồi giảm dần' },
+        { question: 'Module điều chỉnh góc mở trong bộ thí nghiệm có dải điều khiển góc mở của thyristor là bao nhiêu?', answers: ['0 đến 90°', '0 đến 120°', '0 đến 180°', '90 đến 360°'], correct: '0 đến 180°' },
+        { question: 'Ở chế độ điều khiển ngoài AI (Analog Input), điện áp đầu vào 0 đến 10V tương ứng với góc mở thay đổi trong khoảng nào theo tài liệu?', answers: ['0 đến 90°', '90 đến 180°', '180 đến 90°', '0 đến 180° tuyến tính thuận'], correct: '0 đến 180° tuyến tính thuận' },
+        { question: 'Module điều chỉnh góc mở 3 pha có khả năng điều khiển tối đa bao nhiêu thyristor?', answers: ['2 thyristor', '4 thyristor', '6 thyristor', '8 thyristor'], correct: '6 thyristor' },
+        { question: 'Biên độ xung điều khiển cách ly điện đưa ra cổng kích thyristor là bao nhiêu?', answers: ['5Vp', '10Vp', '12Vp', '15Vp'], correct: '15Vp' },
+        { question: 'Sự khác nhau cơ bản giữa chế độ xung “Single” và “Multi” là gì?', answers: ['Single tạo xung liên tục còn Multi chỉ tạo một xung duy nhất', 'Single phát một xung kim tại góc β, Multi phát chùm xung tần số cao từ góc β đến hết nửa chu kỳ', 'Single dùng cho DC còn Multi dùng cho AC', 'Hai chế độ hoàn toàn giống nhau'], correct: 'Single phát một xung kim tại góc β, Multi phát chùm xung tần số cao từ góc β đến hết nửa chu kỳ' },
+        { question: 'Các cực cơ bản của thyristor trên module thực hành là gì?', answers: ['B, C, E', 'A, K, G', 'T1, T2, G', 'D, S, G'], correct: 'A, K, G' },
+        { question: 'Mạch LC tích hợp trên module điốt và thyristor có tác dụng chính nào?', answers: ['Tăng tần số nguồn', 'Bảo vệ chống sốc điện áp với tải điện cảm', 'Biến AC thành DC', 'Tăng hệ số khuếch đại dòng'], correct: 'Bảo vệ chống sốc điện áp với tải điện cảm' },
+        { question: 'Mỗi vạch nhỏ của module ampe kế DC 0 đến 10A tương ứng với giá trị dòng điện xấp xỉ bao nhiêu?', answers: ['0,1A', '0,2A', '0,5A', '1A'], correct: '0,2A' },
+        { question: 'Dải đầu ra tương tự VOUT của module PID là bao nhiêu?', answers: ['0 đến 5VDC', '0 đến 10VDC', '0 đến 12VDC', '±15VDC'], correct: '0 đến 10VDC' },
+        { question: 'Đèn “O.LOOP” sáng cho biết bộ điều khiển PID đang ở trạng thái nào?', answers: ['Vòng hở', 'Báo quá dòng', 'Dừng khẩn cấp', 'Mất phản hồi cảm biến'], correct: 'Vòng hở' },
+        { question: 'Ở chế độ vòng kín, tín hiệu phản hồi tốc độ được đưa vào cổng nào của bộ PID?', answers: ['VOUT', 'ENA', 'VIN', 'G1K1'], correct: 'VIN' },
+        { question: 'Các tham số “St-P”, “St-I”, “St-d” trên module PID lần lượt tương ứng với gì?', answers: ['Điện áp, dòng điện, công suất', 'kP, kI, Kd', 'Tần số, pha, biên độ', 'Giới hạn trên, dưới, giữa'], correct: 'kP, kI, Kd' },
+        { question: 'Khi tăng biến trở “SETPOINT” trong chế độ vòng hở, đại lượng nào thay đổi trực tiếp đầu tiên từ phía bộ PID?', answers: ['Điện trở phần ứng', 'VOUT của bộ PID', 'Tần số lưới điện', 'Số cực động cơ'], correct: 'VOUT của bộ PID' },
+        { question: 'Trong điều khiển ổn định tốc độ dùng PID, khi tăng tải ở đầu trục động cơ thì bộ điều khiển có xu hướng nào?', answers: ['Giảm tác động điều khiển để tốc độ giảm tự do', 'Tăng điện áp điều khiển để bù và giữ tốc độ', 'Ngắt toàn bộ xung kích ngay lập tức', 'Đảo chiều quay động cơ'], correct: 'Tăng điện áp điều khiển để bù và giữ tốc độ' },
+        { question: 'Khi cài sai hệ số PID, hiện tượng nào có thể xảy ra theo tài liệu?', answers: ['Nguồn AC tự đổi thành DC', 'Động cơ chạy cà giật hoặc vọt lên tốc độ lớn', 'Tần số lưới giảm xuống 0Hz', 'Đồng hồ kim tự cân chỉnh lại'], correct: 'Động cơ chạy cà giật hoặc vọt lên tốc độ lớn' },
+        { question: 'Tín hiệu phản hồi tốc độ của hệ kín trong bộ PID được chuẩn hóa ở mức nào?', answers: ['4 đến 20mA', '0 đến 5V', '0 đến 10V', '±220V'], correct: '0 đến 10V' },
+        { question: 'Đối với đầu vào đồng bộ 1 pha của module góc mở, cách đấu đúng là gì?', answers: ['Chỉ đưa dây N vào L1', 'Đưa đồng thời dây pha L tới L1, L2 và nối trung tính vào các chân N tương ứng', 'Chỉ đưa dây pha vào L3', 'Đấu 3 pha bất kỳ vào L1 và N'], correct: 'Đưa đồng thời dây pha L tới L1, L2 và nối trung tính vào các chân N tương ứng' },
+        { question: 'Đối với tín hiệu đồng bộ 3 pha, module cần nhận các dây nào?', answers: ['L1, L2, L3 và nối các chân N chung về trung tính', 'Chỉ L1 và N', 'Chỉ L2, L3', 'Chỉ ba dây N'], correct: 'L1, L2, L3 và nối các chân N chung về trung tính' },
+        { question: 'Khi chuyển mạch chọn chế độ “AI”, góc mở được điều khiển chủ yếu bởi nguồn nào?', answers: ['Hai biến trở mặt máy', 'Điện áp ngoài 0 đến 10V cấp từ PID', 'Nguồn 24VDC cố định', 'Tần số xung từ cảm biến nhiệt độ'], correct: 'Điện áp ngoài 0 đến 10V cấp từ PID' },
+        { question: 'Vai trò của mạch phát hiện điểm “0” trong module điều chỉnh góc mở là gì?', answers: ['Giữ cho động cơ dừng hẳn', 'Làm chuẩn thời gian để phát xung kích theo góc β cho từng nửa chu kỳ hoặc từng pha', 'Đo công suất tác dụng của tải', 'Tăng dòng kích lên vô hạn'], correct: 'Làm chuẩn thời gian để phát xung kích theo góc β cho từng nửa chu kỳ hoặc từng pha' },
+        { question: 'Trong bộ chỉnh lưu có điều khiển, khi tăng góc mở thyristor trong điều kiện nguồn không đổi, điện áp DC trung bình đầu ra thường biến đổi như thế nào?', answers: ['Tăng lên', 'Giảm xuống', 'Không đổi', 'Đổi chiều ngay lập tức'], correct: 'Giảm xuống' },
+        { question: 'Trong hệ T-D, thay đổi VOUT từ bộ PID tác động gần nhất lên khối nào?', answers: ['Khối đồng hồ đo tần số', 'Khối điều chỉnh góc mở thyristor', 'Khối cầu chì bảo vệ', 'Khối tiếp điểm contactor'], correct: 'Khối điều chỉnh góc mở thyristor' },
+        { question: 'So với vòng hở, ưu điểm nổi bật của điều khiển vòng kín PID trong hệ truyền động là gì?', answers: ['Không cần nguồn cấp cho bộ điều khiển', 'Khả năng chống nhiễu tải và giữ tốc độ tốt hơn', 'Không cần phần tử công suất', 'Không cần tín hiệu đặt'], correct: 'Khả năng chống nhiễu tải và giữ tốc độ tốt hơn' },
+        { question: 'Tác dụng chính của thành phần tích phân I trong bộ PID là gì?', answers: ['Giảm điện áp nguồn nuôi', 'Khử sai lệch tĩnh, giúp giá trị ra bám đặt trị tốt hơn', 'Tạo dao động tần số cao có chủ ý', 'Đổi chiều động cơ theo chu kỳ'], correct: 'Khử sai lệch tĩnh, giúp giá trị ra bám đặt trị tốt hơn' },
+        { question: 'Tác dụng thường gặp của thành phần vi phân D trong bộ PID là gì?', answers: ['Làm hệ chậm hơn và bỏ qua biến thiên nhanh', 'Tăng sai lệch xác lập', 'Cải thiện phản ứng với biến thiên nhanh, góp phần giảm vọt lố', 'Thay thế hoàn toàn cho cảm biến tốc độ'], correct: 'Cải thiện phản ứng với biến thiên nhanh, góp phần giảm vọt lố' },
+        { question: 'Khối nguồn của mô hình động cơ bước cung cấp điện áp DC đầu ra là bao nhiêu?', answers: ['5VDC', '12VDC', '24VDC', '48VDC'], correct: '24VDC' },
+        { question: 'Driver động cơ bước trong mô hình có dải dòng điện đầu ra nào?', answers: ['0 đến 1A', '1 đến 4,2A', '5 đến 10A', '10 đến 20A'], correct: '1 đến 4,2A' },
+        { question: 'Tần số xung đầu vào lớn nhất của driver động cơ bước theo tài liệu là bao nhiêu?', answers: ['30kHz', '100kHz', '300kHz', '1MHz'], correct: '100kHz' },
+        { question: 'Đầu ra điều khiển từ driver đến động cơ bước được ký hiệu theo các pha nào?', answers: ['U, V, W', 'A+, A-, B+, B-', 'T1, T2, G', 'R, S, T, N'], correct: 'A+, A-, B+, B-' },
+        { question: 'Động cơ bước trong mô hình được mô tả là loại nào?', answers: ['Động cơ servo 3 pha', 'Động cơ bước đơn cực, 2 pha A và B', 'Động cơ không đồng bộ rôto lồng sóc', 'Động cơ DC chổi than'], correct: 'Động cơ bước đơn cực, 2 pha A và B' },
+        { question: 'Dòng điện cực đại của động cơ bước trong mô hình là bao nhiêu?', answers: ['1A', '2A', '3A', '5A'], correct: '3A' },
+        { question: 'Mômen giữ (holding torque) của động cơ bước trong mô hình xấp xỉ bằng bao nhiêu?', answers: ['0,1764Nm', '1,764Nm', '17,64Nm', '176,4Nm'], correct: '1,764Nm' },
+        { question: 'Bộ điều khiển ZK-SMC01 là bộ điều khiển phù hợp cho cấu hình nào?', answers: ['Nhiều trục servo AC', 'Trục đơn cho động cơ bước', 'Động cơ DC công suất lớn', 'Máy phát tốc analog'], correct: 'Trục đơn cho động cơ bước' },
+        { question: 'Dải nguồn cấp cho bộ điều khiển ZK-SMC01 là gì?', answers: ['AC 220V', 'DC 5 đến 30V', 'DC 24 đến 110V', 'AC 380V'], correct: 'DC 5 đến 30V' },
+        { question: 'Bộ điều khiển ZK-SMC01 có hỗ trợ chức năng nào sau đây?', answers: ['Điều khiển tăng tốc và giảm tốc', 'Tạo nguồn 3 pha', 'Đo công suất tác dụng', 'Biến đổi AC sang DC đối xứng ±15V'], correct: 'Điều khiển tăng tốc và giảm tốc' },
+        { question: 'Kênh truyền thông từ xa của ZK-SMC01 theo tài liệu là gì?', answers: ['RS232 mức ±12V', 'CAN bus', 'Cổng nối tiếp TTL', 'EtherCAT'], correct: 'Cổng nối tiếp TTL' },
+        { question: 'Phạm vi tốc độ cài đặt của bộ ZK-SMC01 là bao nhiêu?', answers: ['0 đến 99 vòng/phút', '0,1 đến 999 vòng/phút', '1 đến 3000 vòng/phút', '10 đến 10000 vòng/phút'], correct: '0,1 đến 999 vòng/phút' },
+        { question: 'Số xung quay về phía trước hoặc phía sau có thể cài trong dải nào?', answers: ['1 đến 999', '1 đến 99999', '1 đến 9999999', '0 đến 255'], correct: '1 đến 99999' },
+        { question: 'Số chu kỳ lặp của bộ điều khiển ZK-SMC01 có thể cài trong khoảng nào?', answers: ['1 đến 99', '1 đến 999', '1 đến 9999', '1 đến 99999'], correct: '1 đến 9999' },
+        { question: 'Nếu số xung điều khiển tăng lên trong khi cơ cấu vít me và góc bước không đổi, đại lượng cơ học nào thường tăng theo?', answers: ['Dòng ngắn mạch của nguồn', 'Quãng dịch chuyển của cơ cấu chấp hành', 'Tần số lưới điện', 'Điện trở cách điện của driver'], correct: 'Quãng dịch chuyển của cơ cấu chấp hành' },
+        { question: 'Biến tần trong mô hình thực hành có công suất danh định bao nhiêu?', answers: ['0,37kW', '0,75kW', '1,5kW', '3kW'], correct: '0,75kW' },
+        { question: 'Điện áp vào danh định của biến tần trong tài liệu là gì?', answers: ['1 pha 220VAC', '3 pha AC 380 đến 480V', '24VDC', '12VDC'], correct: '3 pha AC 380 đến 480V' },
+        { question: 'Tần số nguồn vào danh định của biến tần là bao nhiêu?', answers: ['0 đến 10Hz', '25Hz', '50 đến 60Hz', '400Hz cố định'], correct: '50 đến 60Hz' },
+        { question: 'Dải tần số ngõ ra của biến tần theo tài liệu là gì?', answers: ['0 đến 50Hz', '0,1 đến 400Hz', '50 đến 500Hz', '220 đến 380Hz'], correct: '0,1 đến 400Hz' },
+        { question: 'Phương pháp điều khiển được nêu trong mô hình biến tần là gì?', answers: ['Điều khiển PID nhiệt độ', 'Điều khiển tuyến tính V/f', 'Điều khiển dòng xung đơn', 'Điều khiển theo điện trở phụ rotor'], correct: 'Điều khiển tuyến tính V/f' },
+        { question: 'Chuẩn truyền thông được nêu cho biến tần là gì?', answers: ['I2C', 'SPI', 'RS485/Modbus', 'USB-C Power Delivery'], correct: 'RS485/Modbus' },
+        { question: 'Trong chế độ V/f thông thường, khi tăng tần số đầu ra của biến tần trong giới hạn làm việc, tốc độ động cơ không đồng bộ thường thay đổi theo hướng nào?', answers: ['Giảm về 0 ngay', 'Tăng lên', 'Không đổi', 'Đổi chiều sau mỗi chu kỳ'], correct: 'Tăng lên' },
+        { question: 'Khi phát hiện vận hành bất thường trên mô hình truyền động, thao tác ưu tiên về an toàn là gì?', answers: ['Tăng setpoint để kiểm tra', 'Tiếp tục chạy để quan sát thêm', 'Sử dụng dừng khẩn hoặc ngắt nguồn an toàn', 'Đổi dây pha ngẫu nhiên'], correct: 'Sử dụng dừng khẩn hoặc ngắt nguồn an toàn' },
+        { question: 'Module Aptomat 3 pha trong mô hình có dòng định mức nào?', answers: ['5A', '10A', '20A', '50A'], correct: '10A' },
+        { question: 'Contactor trong mô hình có cuộn dây điều khiển và dòng định mức lần lượt là gì?', answers: ['24VDC và 1A', '110VAC và 5A', '220V/50Hz và 9A', '380VAC và 20A'], correct: '220V/50Hz và 9A' },
+        { question: 'Trong mạch khuếch đại đảo dùng op-amp, tín hiệu ra có quan hệ pha thế nào với tín hiệu vào?', answers: ['Cùng pha', 'Lệch 90°', 'Ngược pha 180°', 'Không xác định'], correct: 'Ngược pha 180°' },
+        { question: 'Trong mạch khuếch đại không đảo, phát biểu nào đúng?', answers: ['Đầu ra cùng pha với đầu vào', 'Đầu ra luôn nhỏ hơn đầu vào', 'Mạch chỉ làm việc với AC 3 pha', 'Mạch không cần nguồn nuôi đối xứng'], correct: 'Đầu ra cùng pha với đầu vào' },
+        { question: 'Mạch vi phân dùng op-amp cho tín hiệu ra tỉ lệ gần đúng với đại lượng nào của tín hiệu vào?', answers: ['Giá trị trung bình của tín hiệu vào', 'Đạo hàm theo thời gian của tín hiệu vào', 'Điện trở nội của nguồn', 'Công suất tác dụng của tải'], correct: 'Đạo hàm theo thời gian của tín hiệu vào' },
+        { question: 'Mạch tích phân dùng op-amp cho tín hiệu ra gần đúng tỉ lệ với đại lượng nào?', answers: ['Tích phân theo thời gian của tín hiệu vào', 'Tần số lưới điện', 'Hệ số công suất', 'Mômen động cơ'], correct: 'Tích phân theo thời gian của tín hiệu vào' },
+        { question: 'Trong mạch ổn áp dùng diode Zener, vai trò chủ yếu của diode Zener là gì?', answers: ['Tạo tham chiếu điện áp ổn định', 'Khuếch đại dòng kiểu Darlington', 'Tạo xung clock 1Hz', 'Biến đổi 3 pha thành 1 pha'], correct: 'Tạo tham chiếu điện áp ổn định' },
+        { question: 'IC 7805 trong tài liệu thực hành thường được dùng để tạo ra mức điện áp ổn áp nào?', answers: ['3,3V', '5V', '9V', '15V'], correct: '5V' },
+        { question: 'Cặp IC 7812 và 7912 thường được dùng để tạo bộ nguồn nào?', answers: ['Nguồn xung 5V và 3,3V', 'Nguồn đối xứng +12V và -12V', 'Nguồn AC 1 pha 220V', 'Nguồn điều khiển thyristor 15Vp'], correct: 'Nguồn đối xứng +12V và -12V' },
+        { question: 'Ưu điểm cơ bản của mạch chỉnh lưu cầu toàn sóng so với chỉnh lưu nửa chu kỳ là gì?', answers: ['Chỉ dùng được với nguồn DC', 'Khai thác được cả hai nửa chu kỳ của điện áp AC', 'Không cần diode', 'Điện áp ra luôn bằng 0'], correct: 'Khai thác được cả hai nửa chu kỳ của điện áp AC' },
+        { question: 'Trong mạch đo tần số hiển thị 2 digit, khối tạo xung chuẩn 1Hz có vai trò chính nào?', answers: ['Tạo điện áp nguồn đối xứng', 'Làm chuẩn thời gian cửa đo', 'Thay thế khối hiển thị', 'Khuếch đại dòng cho LED 7 đoạn'], correct: 'Làm chuẩn thời gian cửa đo' },
+        { question: 'Trong mạch dao động dùng IC NE555, chân nào thường là chân đầu ra xung?', answers: ['Chân 1', 'Chân 2', 'Chân 3', 'Chân 8'], correct: 'Chân 3' },
+        { question: 'IC L298 trong phần thực hành vi điều khiển được dùng chủ yếu để làm gì?', answers: ['Đo tần số tín hiệu vào', 'Điều khiển công suất cho động cơ DC theo hai chiều', 'Tạo nguồn ±12V', 'Làm cảm biến nhiệt độ số'], correct: 'Điều khiển công suất cho động cơ DC theo hai chiều' },
+        { question: 'Module ULN2003A trong phần IoT được ghép với loại cơ cấu chấp hành nào?', answers: ['Động cơ bước 28BYJ-48', 'Động cơ không đồng bộ 3 pha', 'Biến tần 0,75kW', 'Máy biến dòng'], correct: 'Động cơ bước 28BYJ-48' },
+        { question: 'DS18B20 trong tài liệu mô phỏng MCS8051 là cảm biến gì?', answers: ['Cảm biến ánh sáng', 'Cảm biến khoảng cách siêu âm', 'Cảm biến nhiệt độ số', 'Cảm biến rung cơ khí'], correct: 'Cảm biến nhiệt độ số' },
+        { question: 'Mạch đếm trong điện tử số có chức năng cơ bản nào?', answers: ['Khuếch đại công suất âm thanh', 'Đếm số xung vào theo chuỗi trạng thái', 'Ổn định điện áp 12V', 'Đo cosφ của tải'], correct: 'Đếm số xung vào theo chuỗi trạng thái' },
+        { question: 'Mạch trigger dùng phản hồi dương có ưu điểm chính nào trong xử lý tín hiệu?', answers: ['Giảm hoàn toàn điện áp nguồn nuôi', 'Tạo vùng trễ giúp chống nhiễu khi so sánh mức', 'Biến nguồn AC thành DC', 'Đo được trực tiếp công suất 3 pha'], correct: 'Tạo vùng trễ giúp chống nhiễu khi so sánh mức' }
+    ];
+
+    // Xáo trộn mảng câu hỏi
+    quizData = shuffleArray(quizData);
+
+    // Xáo trộn vị trí các đáp án bên trong mỗi câu hỏi
+    quizData.forEach(q => {
+        q.answers = shuffleArray(q.answers);
+    });
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let answered = false;
+    let autoNextTimeout = null;
+
+    const questionEl = document.getElementById('question');
+    const answersEl = document.getElementById('answers');
+    const progressEl = document.getElementById('progress');
+    const resultEl = document.getElementById('result');
+    const quizContainer = document.getElementById('quiz-container');
+
+    const optionLetters = ['A', 'B', 'C', 'D'];
+    const optionColors = {
+        A: '#D0E8FF',
+        B: '#D4EDDA',
+        C: '#FFE5B4',
+        D: '#F8D7DA',
+    };
+
+    function loadQuestion() {
+        clearTimeout(autoNextTimeout);
+        answered = false;
+        resultEl.innerText = '';
+        answersEl.innerHTML = '';
+        
+        const currentData = quizData[currentQuestionIndex];
+        questionEl.innerText = `Câu ${currentQuestionIndex + 1}: ${currentData.question}`;
+        progressEl.innerText = `Câu ${currentQuestionIndex + 1} / ${quizData.length}`;
+
+        currentData.answers.forEach((answer, index) => {
+            const letter = optionLetters[index];
+            const btn = document.createElement('div');
+            
+            btn.classList.add('answer-option', `answer-${letter}`);
+            btn.style.backgroundColor = optionColors[letter];
+            btn.style.color = '#000000';
+            btn.innerHTML = `<span class="answer-label">${letter}</span> ${answer}`;
+            btn.tabIndex = 0;
+            
+            // Dùng thuộc tính data-answer để lưu chuỗi gốc, tránh lỗi cắt chuỗi
+            btn.dataset.answer = answer; 
+            
+            btn.onclick = () => selectAnswer(btn, answer);
+            btn.onkeydown = (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    btn.click();
+                }
+            };
+            answersEl.appendChild(btn);
+        });
+
+        quizContainer.focus();
+    }
+
+    function selectAnswer(btn, answer) {
+        if (answered) return;
+        answered = true;
+
+        const allOptions = document.querySelectorAll('.answer-option');
+        allOptions.forEach(opt => opt.style.pointerEvents = 'none');
+
+        const correctAnswer = quizData[currentQuestionIndex].correct;
+
+        if (answer === correctAnswer) {
+            btn.classList.add('correct');
+            score++;
+        } else {
+            btn.classList.add('wrong');
+            // Tìm và highlight đáp án đúng
+            allOptions.forEach(opt => {
+                if (opt.dataset.answer === correctAnswer) {
+                    opt.classList.add('correct');
+                }
+            });
+        }
+
+        resultEl.innerText = 'Nhấn Enter hoặc Space để sang câu tiếp theo...';
+
+        autoNextTimeout = setTimeout(() => {
+            goToNextQuestion();
+        }, 5000);
+    }
+
+    function goToNextQuestion() {
+        clearTimeout(autoNextTimeout);
+        if (currentQuestionIndex < quizData.length - 1) {
+            currentQuestionIndex++;
+            loadQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    function goToPreviousQuestion() {
+        clearTimeout(autoNextTimeout);
+        if (currentQuestionIndex > 0) {
+            currentQuestionIndex--;
+            loadQuestion();
+        }
+    }
+
+    quizContainer.addEventListener('keydown', function(e) {
+        if ((e.key === 'Enter' || e.key === ' ') && answered) {
+            e.preventDefault();
+            goToNextQuestion();
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            goToNextQuestion();
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            goToPreviousQuestion();
+        }
+    });
+
+    function showResult() {
+        questionEl.innerText = 'Báo Cáo Kết Quả Thi';
+        answersEl.innerHTML = '';
+        progressEl.innerText = '';
+        resultEl.innerText = `Bạn đã hoàn thành bài thi! Điểm của bạn là ${score} / ${quizData.length}.`;
+    }
+
+    // Khởi chạy câu hỏi đầu tiên
+    loadQuestion();
+</script>
+</body>
+</html>
