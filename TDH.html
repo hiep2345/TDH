@@ -11,8 +11,8 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px 10px; /* Lề nhỏ hơn cho mobile */
-            background: #400848; /* tím pastel */
+            padding: 20px 10px; 
+            background: #400848; 
             color: #222;
             min-height: 100vh;
             display: flex;
@@ -49,7 +49,6 @@
             display: flex;
             align-items: center;
             line-height: 1.3;
-            /* Chống highlight text khi tap liên tục trên điện thoại */
             -webkit-tap-highlight-color: transparent; 
         }
         .answer-option:active {
@@ -78,23 +77,43 @@
             text-align: center;
         }
         #result {
-            font-size: 1.2em;
-            font-weight: 700;
-            color: #90ee90;
+            font-size: 1em;
+            font-weight: 500;
+            color: #ffcc00;
             text-align: center;
-            margin-top: 20px;
-        }
-        .answer-label {
-            font-weight: 700;
-            margin-right: 12px;
-            min-width: 24px;
-            text-align: center;
-            background: rgba(0,0,0,0.1);
-            border-radius: 4px;
-            padding: 2px 0;
+            margin-top: 15px;
+            min-height: 20px;
         }
 
-        /* TỐI ƯU RIÊNG CHO MÀN HÌNH ĐIỆN THOẠI NHỎ */
+        /* Nút điều hướng cho mobile */
+        #controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .nav-btn {
+            background-color: #ffcc00;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #222;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            -webkit-tap-highlight-color: transparent; 
+            transition: transform 0.1s;
+        }
+        .nav-btn:active {
+            transform: scale(0.95);
+        }
+        .nav-btn:disabled {
+            background-color: #ccc;
+            color: #666;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
         @media (max-width: 480px) {
             body {
                 padding: 15px 8px;
@@ -113,20 +132,28 @@
                 min-width: 20px;
                 margin-right: 10px;
             }
+            .nav-btn {
+                padding: 12px 15px;
+                font-size: 0.95em;
+            }
         }
     </style>
 </head>
 <body>
 
-<div id="quiz-container" tabindex="0" aria-live="polite" aria-atomic="true" role="region">
+<div id="quiz-container">
     <div id="question"></div>
     <div id="answers"></div>
     <div id="progress"></div>
-    <div id="result" aria-live="assertive"></div>
+    <div id="result"></div>
+    
+    <div id="controls">
+        <button id="prev-btn" class="nav-btn" onclick="goToPreviousQuestion()" style="display: none;">⬅ Quay lại</button>
+        <button id="next-btn" class="nav-btn" onclick="goToNextQuestion()" style="display: none; margin-left: auto;">Tiếp theo ➡</button>
+    </div>
 </div>
 
 <script>
-    // Hàm xáo trộn mảng (Fisher-Yates Shuffle)
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -238,10 +265,8 @@
         { question: 'Mạch trigger dùng phản hồi dương có ưu điểm chính nào trong xử lý tín hiệu?', answers: ['Giảm hoàn toàn điện áp nguồn nuôi', 'Tạo vùng trễ giúp chống nhiễu khi so sánh mức', 'Biến nguồn AC thành DC', 'Đo được trực tiếp công suất 3 pha'], correct: 'Tạo vùng trễ giúp chống nhiễu khi so sánh mức' }
     ];
 
-    // Xáo trộn mảng câu hỏi
     quizData = shuffleArray(quizData);
 
-    // Xáo trộn vị trí các đáp án bên trong mỗi câu hỏi
     quizData.forEach(q => {
         q.answers = shuffleArray(q.answers);
     });
@@ -255,7 +280,9 @@
     const answersEl = document.getElementById('answers');
     const progressEl = document.getElementById('progress');
     const resultEl = document.getElementById('result');
-    const quizContainer = document.getElementById('quiz-container');
+    
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
 
     const optionLetters = ['A', 'B', 'C', 'D'];
     const optionColors = {
@@ -271,6 +298,10 @@
         resultEl.innerText = '';
         answersEl.innerHTML = '';
         
+        // Ẩn/hiện nút điều hướng
+        prevBtn.style.display = currentQuestionIndex > 0 ? 'block' : 'none';
+        nextBtn.style.display = 'none'; // Ẩn nút tiếp theo cho đến khi trả lời
+
         const currentData = quizData[currentQuestionIndex];
         questionEl.innerText = `Câu ${currentQuestionIndex + 1}: ${currentData.question}`;
         progressEl.innerText = `Câu ${currentQuestionIndex + 1} / ${quizData.length}`;
@@ -283,22 +314,12 @@
             btn.style.backgroundColor = optionColors[letter];
             btn.style.color = '#000000';
             btn.innerHTML = `<span class="answer-label">${letter}</span> ${answer}`;
-            btn.tabIndex = 0;
             
-            // Dùng thuộc tính data-answer để lưu chuỗi gốc, tránh lỗi cắt chuỗi
             btn.dataset.answer = answer; 
             
             btn.onclick = () => selectAnswer(btn, answer);
-            btn.onkeydown = (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    btn.click();
-                }
-            };
             answersEl.appendChild(btn);
         });
-
-        quizContainer.focus();
     }
 
     function selectAnswer(btn, answer) {
@@ -315,7 +336,6 @@
             score++;
         } else {
             btn.classList.add('wrong');
-            // Tìm và highlight đáp án đúng
             allOptions.forEach(opt => {
                 if (opt.dataset.answer === correctAnswer) {
                     opt.classList.add('correct');
@@ -323,7 +343,8 @@
             });
         }
 
-        resultEl.innerText = 'Chờ 5s tự động qua câu tiếp theo...';
+        resultEl.innerText = 'Chờ 5s hoặc bấm "Tiếp theo" để qua nhanh...';
+        nextBtn.style.display = 'block'; // Hiện nút để người dùng bấm
 
         autoNextTimeout = setTimeout(() => {
             goToNextQuestion();
@@ -348,27 +369,15 @@
         }
     }
 
-    quizContainer.addEventListener('keydown', function(e) {
-        if ((e.key === 'Enter' || e.key === ' ') && answered) {
-            e.preventDefault();
-            goToNextQuestion();
-        } else if (e.key === 'ArrowRight') {
-            e.preventDefault();
-            goToNextQuestion();
-        } else if (e.key === 'ArrowLeft') {
-            e.preventDefault();
-            goToPreviousQuestion();
-        }
-    });
-
     function showResult() {
         questionEl.innerText = 'Báo Cáo Kết Quả Thi';
         answersEl.innerHTML = '';
         progressEl.innerText = '';
-        resultEl.innerText = `Bạn đã hoàn thành bài thi! Điểm của bạn là ${score} / ${quizData.length}.`;
+        resultEl.innerText = `Bạn đã hoàn thành! Điểm: ${score} / ${quizData.length}`;
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
     }
 
-    // Khởi chạy câu hỏi đầu tiên
     loadQuestion();
 </script>
 </body>
